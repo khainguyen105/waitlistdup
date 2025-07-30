@@ -199,7 +199,9 @@ CREATE TABLE IF NOT EXISTS checkin_entries (
     special_requests text,
     notes text,
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now()
+    updated_at timestamptz DEFAULT now(),
+    CREATE POLICY "Allow anon insert for checkin_entries" ON "public"."checkin_entries" FOR INSERT WITH CHECK (true);
+
 );
 
 -- Customer history table
