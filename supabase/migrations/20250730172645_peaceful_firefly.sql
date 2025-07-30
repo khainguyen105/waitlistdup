@@ -338,6 +338,10 @@ ALTER TABLE queue_control_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Allow all for agency_admin, location_manager, and staff" ON "public"."checkin_entries" FOR ALL USING (auth.role() IN ('agency_admin', 'location_manager', 'staff'));
+CREATE POLICY "Allow customer to read their own checkins" ON "public"."checkin_entries" FOR SELECT USING (auth.uid() = customer_id); -- NOTE: This policy might need adjustment if 'customer_id' is not directly linked to auth.uid() in your table.
+CREATE POLICY "Allow anon insert for checkin_entries" ON "public"."checkin_entries" FOR INSERT WITH CHECK (true);
+
 -- RLS Policies for public access (customers)
 CREATE POLICY "Allow public read access to locations" ON locations FOR SELECT USING (is_active = true);
 CREATE POLICY "Allow public read access to services" ON services FOR SELECT USING (is_active = true);
