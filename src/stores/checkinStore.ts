@@ -253,9 +253,6 @@ export const useCheckinStore = create<CheckinState>()(
         set({ isLoading: true });
         
         try {
-          // Fetch fresh data from Supabase
-          await get().fetchFromSupabase(get().selectedLocationId || undefined);
-          
           // Expire old check-ins and clean up
           get().expireOldCheckins();
           get().cleanupOldCheckins();
@@ -290,6 +287,16 @@ export const useCheckinStore = create<CheckinState>()(
         if (cleanedCheckins.length !== checkins.length) {
           set({ checkins: cleanedCheckins });
         }
+      },
+
+      initializeRealTime: (locationId) => {
+        // Placeholder for real-time initialization
+        console.log('Initializing real-time for location:', locationId);
+      },
+
+      disconnectRealTime: () => {
+        // Placeholder for real-time disconnection
+        console.log('Disconnecting real-time');
       },
     }),
     {

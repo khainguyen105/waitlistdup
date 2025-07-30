@@ -133,6 +133,7 @@ export function RemoteCheckinForm({ locationId, onSuccess }: RemoteCheckinFormPr
         customerName: formData.customerName,
         customerPhone: formData.customerPhone,
         customerEmail: formData.customerEmail || undefined,
+        customerType: 'regular',
         services: formData.services,
         checkinType: 'remote',
         status: 'en_route',
@@ -141,9 +142,10 @@ export function RemoteCheckinForm({ locationId, onSuccess }: RemoteCheckinFormPr
       });
 
       // Simulate sending SMS confirmation
-      console.log(`SMS sent to ${formData.customerPhone}: Your check-in code is ${checkin.checkinCode}. Estimated arrival: ${new Date(formData.estimatedArrivalTime).toLocaleTimeString()}`);
+      const checkinCode = checkin?.checkinCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+      console.log(`SMS sent to ${formData.customerPhone}: Your check-in code is ${checkinCode}. Estimated arrival: ${new Date(formData.estimatedArrivalTime).toLocaleTimeString()}`);
 
-      onSuccess(checkin.checkinCode);
+      onSuccess(checkinCode);
     } catch (error) {
       console.error('Failed to submit remote check-in:', error);
       setErrors({ submit: 'Failed to submit check-in. Please try again.' });

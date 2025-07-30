@@ -68,13 +68,13 @@ export const useQueueStore = create<QueueState>()(
         
         try {
           // Calculate position first
-        const { entries } = get();
-        const locationEntries = entries.filter(e => 
-          e.locationId === entry.locationId && 
-          (e.status === 'waiting' || e.status === 'called' || e.status === 'in_progress')
-        );
-        const waitingEntries = locationEntries.filter(e => e.status === 'waiting');
-        const position = waitingEntries.length + 1;
+          const { entries } = get();
+          const locationEntries = entries.filter(e => 
+            e.locationId === entry.locationId && 
+            (e.status === 'waiting' || e.status === 'called' || e.status === 'in_progress')
+          );
+          const waitingEntries = locationEntries.filter(e => e.status === 'waiting');
+          const position = waitingEntries.length + 1;
 
           // Import supabase only when needed
           const { supabase } = await import('../lib/supabase');
@@ -188,6 +188,10 @@ export const useQueueStore = create<QueueState>()(
           });
           
           // Fallback to local storage only
+          const position = get().entries.filter(e => 
+            e.locationId === entry.locationId && e.status === 'waiting'
+          ).length + 1;
+          
           const newEntry: QueueEntry = {
             id: 'local-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
             ...entry,

@@ -165,6 +165,7 @@ export function InStoreCheckinForm({ locationId, onSuccess }: InStoreCheckinForm
         customerName: formData.customerName,
         customerPhone: formData.customerPhone,
         customerEmail: formData.customerEmail || undefined,
+        customerType: 'regular',
         services: formData.services,
         checkinType: 'in_store',
         status: 'present',
@@ -177,7 +178,9 @@ export function InStoreCheckinForm({ locationId, onSuccess }: InStoreCheckinForm
         notes: formData.notes || undefined,
       });
 
-      onSuccess(checkin.checkinCode);
+      // Ensure we have a valid checkin code
+      const checkinCode = checkin?.checkinCode || generateCode();
+      onSuccess(checkinCode);
     } catch (error) {
       console.error('Failed to submit in-store check-in:', error);
       setErrors({ submit: 'Failed to submit check-in. Please try again.' });

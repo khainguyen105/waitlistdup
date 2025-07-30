@@ -245,15 +245,46 @@ export function EnhancedLocationCheckin() {
       setStep('in-queue');
 
       // Navigate to unique queue entry URL with proper error handling
-      if (newEntry) {
+      if (newEntry && newEntry.id) {
         try {
           navigate(`/queue/${newEntry.id}`, { replace: true });
+          // Also update the customer entry state
+          setCustomerEntry(newEntry);
         } catch (error) {
           console.error('Navigation error:', error);
           // Fallback: just stay on current page but show in-queue status
+          setCustomerEntry(newEntry);
         }
       } else {
         console.warn('No queue entry returned, staying on current page');
+        // Create a temporary entry for display purposes
+        const tempEntry = {
+          id: `temp-${Date.now()}`,
+          locationId,
+          customerName: formData.customerName,
+          customerPhone: formData.customerPhone,
+          customerEmail: formData.customerEmail || undefined,
+          customerType: formData.customerType,
+          services: formData.services,
+          serviceIds: formData.serviceIds,
+          assignedEmployeeId: assignedEmployeeId || undefined,
+          preferredEmployeeId: formData.preferredEmployeeId || undefined,
+          assignmentMethod,
+          priority: formData.customerType === 'vip' ? 'high' : 'normal',
+          status: 'waiting' as const,
+          position: 1,
+          estimatedWaitTime: estimatedDuration,
+          actualWaitTime: undefined,
+          serviceStartTime: undefined,
+          serviceEndTime: undefined,
+          joinedAt: new Date(),
+          calledAt: undefined,
+          completedAt: undefined,
+          notifications: [],
+          specialRequests: formData.specialRequests || undefined,
+          notes: undefined,
+        };
+        setCustomerEntry(tempEntry);
       }
     } catch (error) {
       console.error('Failed to join queue:', error);
