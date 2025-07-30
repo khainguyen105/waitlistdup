@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS checkin_entries (
     special_requests text,
     notes text,
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 
 );
 
