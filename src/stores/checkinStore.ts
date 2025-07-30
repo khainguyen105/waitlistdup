@@ -273,11 +273,6 @@ export const useCheckinStore = create<CheckinState>()(
       cleanupOldCheckins: () => {
         const { checkins } = get();
         
-        // Initialize real-time subscription for the new location
-        get().initializeRealTime(locationId);
-        
-        // Fetch data for the new location
-        get().fetchFromSupabase(locationId);
         const now = new Date();
         const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         

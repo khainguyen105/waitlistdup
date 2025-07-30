@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CustomerPage } from './pages/CustomerPage';
 import { EnhancedLocationCheckin } from './components/customer/EnhancedLocationCheckin';
 import { QueueEntryPage } from './components/customer/QueueEntryPage';
+import { CrossTabSync } from './components/common/CrossTabSync';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
