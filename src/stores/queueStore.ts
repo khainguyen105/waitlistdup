@@ -76,6 +76,9 @@ export const useQueueStore = create<QueueState>()(
         const waitingEntries = locationEntries.filter(e => e.status === 'waiting');
         const position = waitingEntries.length + 1;
 
+          // Import supabase only when needed
+          const { supabase } = await import('../lib/supabase');
+          
           // Try to save to Supabase first
           const { data, error } = await supabase
             .from('queue_entries')
@@ -136,47 +139,47 @@ export const useQueueStore = create<QueueState>()(
             notes: data.notes,
           };
         
-        // Clean up old completed entries before adding new one
-        const cleanedEntries = entries.filter(e => {
-          if (e.status === 'completed' || e.status === 'no_show' || e.status === 'cancelled') {
-            const completedTime = e.completedAt || e.joinedAt;
-            const hoursSinceCompleted = (Date.now() - completedTime.getTime()) / (1000 * 60 * 60);
-            return hoursSinceCompleted < 24; // Keep completed entries for 24 hours
-          }
-          return true;
-        });
-        
-        const updatedEntries = [...cleanedEntries, newEntry];
-        
-        // Recalculate positions for all waiting entries in this location
-        const recalculatedEntries = updatedEntries.map(e => {
-          if (e.locationId === entry.locationId && e.status === 'waiting') {
-            const waitingInLocation = updatedEntries
-              .filter(entry => entry.locationId === e.locationId && entry.status === 'waiting')
-              .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
-            const newPosition = waitingInLocation.findIndex(waiting => waiting.id === e.id) + 1;
-            return { ...e, position: newPosition };
-          }
-          return e;
-        });
-        
-        set({ 
-          entries: recalculatedEntries,
-          isLoading: false,
-          lastSyncTime: new Date()
-        });
-        
-        // Immediate stats update
-        setTimeout(() => {
-          get().updateStats();
-        }, 100);
-        
-        // Trigger a custom event to notify other parts of the app
-        window.dispatchEvent(new CustomEvent('queueUpdated', { 
-          detail: { type: 'added', entry: newEntry } 
-        }));
+          // Clean up old completed entries before adding new one
+          const cleanedEntries = entries.filter(e => {
+            if (e.status === 'completed' || e.status === 'no_show' || e.status === 'cancelled') {
+              const completedTime = e.completedAt || e.joinedAt;
+              const hoursSinceCompleted = (Date.now() - completedTime.getTime()) / (1000 * 60 * 60);
+              return hoursSinceCompleted < 24; // Keep completed entries for 24 hours
+            }
+            return true;
+          });
+          
+          const updatedEntries = [...cleanedEntries, newEntry];
+          
+          // Recalculate positions for all waiting entries in this location
+          const recalculatedEntries = updatedEntries.map(e => {
+            if (e.locationId === entry.locationId && e.status === 'waiting') {
+              const waitingInLocation = updatedEntries
+                .filter(entry => entry.locationId === e.locationId && entry.status === 'waiting')
+                .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+              const newPosition = waitingInLocation.findIndex(waiting => waiting.id === e.id) + 1;
+              return { ...e, position: newPosition };
+            }
+            return e;
+          });
+          
+          set({ 
+            entries: recalculatedEntries,
+            isLoading: false,
+            lastSyncTime: new Date()
+          });
+          
+          // Immediate stats update
+          setTimeout(() => {
+            get().updateStats();
+          }, 100);
+          
+          // Trigger a custom event to notify other parts of the app
+          window.dispatchEvent(new CustomEvent('queueUpdated', { 
+            detail: { type: 'added', entry: newEntry } 
+          }));
 
-        return newEntry;
+          return newEntry;
         } catch (error) {
           console.error('Failed to add to queue:', error);
           set({ 

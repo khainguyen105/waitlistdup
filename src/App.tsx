@@ -41,6 +41,10 @@ function App() {
             element={<QueueEntryPage />} 
           />
           <Route 
+            path="/checkin/:locationId" 
+            element={<EnhancedLocationCheckin />} 
+          />
+          <Route 
             path="/" 
             element={<Navigate to="/checkin" />} 
           />

@@ -20,6 +20,7 @@ export function CheckinDashboard() {
     selectedLocationId, 
     isLoading, 
     lastSyncTime,
+    error,
     getCheckinsForLocation,
     updateCheckin,
     convertToQueue,
@@ -269,6 +270,21 @@ export function CheckinDashboard() {
     </div>
   );
 
+  // Add error boundary for debugging
+  if (error) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md">
+          <h2 className="text-xl font-bold text-red-900 mb-4">Check-in Dashboard Error</h2>
+          <p className="text-red-700 mb-4">{error}</p>
+          <TouchFriendlyButton onClick={() => window.location.reload()}>
+            Reload Page
+          </TouchFriendlyButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -276,9 +292,9 @@ export function CheckinDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Check-in Dashboard</h2>
           <p className="text-gray-600">Manage remote and in-store customer check-ins</p>
-          {(error || checkinError) && (
+          {error && (
             <p className="text-red-600 text-sm mt-1">
-              Error: {error || checkinError}
+              Error: {error}
             </p>
           )}
         </div>
@@ -287,10 +303,10 @@ export function CheckinDashboard() {
           <TouchFriendlyButton
             variant="ghost"
             onClick={() => syncData()}
-            disabled={isLoading || isCheckinLoading}
+            disabled={isLoading}
           >
-            <RefreshCw className={cn('w-5 h-5 mr-2', (isLoading || isCheckinLoading) && 'animate-spin')} />
-            {(isLoading || isCheckinLoading) ? 'Syncing...' : 'Sync'}
+            <RefreshCw className={cn('w-5 h-5 mr-2', isLoading && 'animate-spin')} />
+            {isLoading ? 'Syncing...' : 'Sync'}
           </TouchFriendlyButton>
         </div>
       </div>

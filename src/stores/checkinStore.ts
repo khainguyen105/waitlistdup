@@ -72,6 +72,9 @@ export const useCheckinStore = create<CheckinState>()(
         set({ isLoading: true, error: null });
         
         try {
+          // Import supabase only when needed
+          const { supabase } = await import('../lib/supabase');
+          
           // First try to save to Supabase
           const { data, error } = await supabase
             .from('checkin_entries')
@@ -144,20 +147,20 @@ export const useCheckinStore = create<CheckinState>()(
           });
           
           // Fallback to local storage only
-        const newCheckin: CheckinEntry = {
-          id: 'local-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          ...checkin,
-          checkinCode: generateCode(),
-          checkinTime: new Date(),
-        };
+          const newCheckin: CheckinEntry = {
+            id: 'local-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            ...checkin,
+            checkinCode: generateCode(),
+            checkinTime: new Date(),
+          };
 
-        set(state => ({
-          checkins: [...state.checkins, newCheckin],
-          isLoading: false,
-          lastSyncTime: new Date()
-        }));
+          set(state => ({
+            checkins: [...state.checkins, newCheckin],
+            isLoading: false,
+            lastSyncTime: new Date()
+          }));
 
-        return newCheckin;
+          return newCheckin;
         }
       },
 

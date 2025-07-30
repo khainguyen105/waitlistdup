@@ -97,6 +97,19 @@ export function EnhancedLocationCheckin() {
     }
   }, [entries, locationId, formData.customerPhone, step]);
 
+      // Generate unique URL immediately when entering queue
+      useEffect(() => {
+        if (step === 'in-queue' && customerEntry && customerEntry.id) {
+          // Only navigate if we're not already on the correct URL
+          const currentPath = window.location.pathname;
+          const expectedPath = `/queue/${customerEntry.id}`;
+          
+          if (currentPath !== expectedPath && !currentPath.includes('/queue/')) {
+            navigate(expectedPath, { replace: true });
+          }
+        }
+      }, [step, customerEntry, navigate]);
+
   // Listen for real-time queue updates
   useEffect(() => {
     // Listen for Supabase real-time updates
@@ -231,11 +244,21 @@ export function EnhancedLocationCheckin() {
       refreshQueue();
       setStep('in-queue');
 
+      // Navigate to unique queue entry URL with proper error handling
       if (newEntry) {
-        navigate(`/queue/${newEntry.id}`, { replace: true });
+        try {
+          navigate(`/queue/${newEntry.id}`, { replace: true });
+        } catch (error) {
+          console.error('Navigation error:', error);
+          // Fallback: just stay on current page but show in-queue status
+        }
+      } else {
+        console.warn('No queue entry returned, staying on current page');
       }
     } catch (error) {
       console.error('Failed to join queue:', error);
+      // Show user-friendly error message
+      alert('Failed to join queue. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
