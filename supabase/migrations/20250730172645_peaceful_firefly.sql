@@ -200,10 +200,10 @@ CREATE TABLE IF NOT EXISTS checkin_entries (
     notes text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    CREATE POLICY "Allow anon insert for checkin_entries" ON "public"."checkin_entries" FOR INSERT WITH CHECK (true);
 
 );
 
+CREATE POLICY "Allow anon insert for checkin_entries" ON "public"."checkin_entries" FOR INSERT WITH CHECK (true);
 -- Customer history table
 CREATE TABLE IF NOT EXISTS customer_history (
     id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
