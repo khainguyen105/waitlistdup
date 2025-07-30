@@ -75,6 +75,8 @@ export const useCheckinStore = create<CheckinState>()(
           // Import supabase only when needed
           const { supabase } = await import('../lib/supabase');
           
+          console.log('Attempting to insert checkin:', checkin);
+          const generatedCheckinCode = get().generateCheckinCode();
           // First try to save to Supabase
           const { data, error } = await supabase
             .from('checkin_entries')
@@ -88,7 +90,7 @@ export const useCheckinStore = create<CheckinState>()(
               preferred_employee_id: checkin.preferredEmployeeId,
               checkin_type: checkin.checkinType,
               status: checkin.status,
-              checkin_code: generateCode(),
+              checkin_code: generatedCheckinCode,
               estimated_arrival_time: checkin.estimatedArrivalTime?.toISOString(),
               actual_arrival_time: checkin.actualArrivalTime?.toISOString(),
               verification_method: checkin.verificationMethod,
@@ -97,33 +99,40 @@ export const useCheckinStore = create<CheckinState>()(
               notes: checkin.notes,
             })
             .select()
-            .single();
+            // Removed .single() to make it more robust against potential non-single returns
+            ;
 
           if (error) {
-            console.error('Supabase insertion error:', error);
+            console.error('Supabase insertion error details:', error);
             throw error;
           }
 
+          if (!data || data.length === 0) {
+            throw new Error('Supabase insert returned no data.');
+          }
+
+          const insertedData = data[0]; // Get the first inserted row
+
           // Convert Supabase response to local format
           const newCheckin: CheckinEntry = {
-            id: data.id,
-            locationId: data.location_id,
-            customerName: data.customer_name,
-            customerPhone: data.customer_phone,
-            customerEmail: data.customer_email,
-            customerType: data.customer_type,
-            services: data.services,
-            preferredEmployeeId: data.preferred_employee_id,
-            checkinType: data.checkin_type,
-            status: data.status,
-            checkinCode: data.checkin_code,
-            estimatedArrivalTime: data.estimated_arrival_time ? new Date(data.estimated_arrival_time) : undefined,
-            actualArrivalTime: data.actual_arrival_time ? new Date(data.actual_arrival_time) : undefined,
-            checkinTime: new Date(data.checkin_time),
-            verificationMethod: data.verification_method,
-            coordinates: data.coordinates,
-            specialRequests: data.special_requests,
-            notes: data.notes,
+            id: insertedData.id,
+            locationId: insertedData.location_id,
+            customerName: insertedData.customer_name,
+            customerPhone: insertedData.customer_phone,
+            customerEmail: insertedData.customer_email,
+            customerType: insertedData.customer_type,
+            services: insertedData.services,
+            preferredEmployeeId: insertedData.preferred_employee_id,
+            checkinType: insertedData.checkin_type,
+            status: insertedData.status,
+            checkinCode: insertedData.checkin_code,
+            estimatedArrivalTime: insertedData.estimated_arrival_time ? new Date(insertedData.estimated_arrival_time) : undefined,
+            actualArrivalTime: insertedData.actual_arrival_time ? new Date(insertedData.actual_arrival_time) : undefined,
+            checkinTime: new Date(insertedData.checkin_time),
+            verificationMethod: insertedData.verification_method,
+            coordinates: insertedData.coordinates,
+            specialRequests: insertedData.special_requests,
+            notes: insertedData.notes,
           };
 
           // Update local state
@@ -140,7 +149,7 @@ export const useCheckinStore = create<CheckinState>()(
 
           return newCheckin;
         } catch (error) {
-          console.error('Failed to add check-in:', error);
+          console.error('Failed to add check-in (catch block):', error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to add check-in',
             isLoading: false 
@@ -150,7 +159,7 @@ export const useCheckinStore = create<CheckinState>()(
           const newCheckin: CheckinEntry = {
             id: 'local-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
             ...checkin,
-            checkinCode: generateCode(),
+            checkinCode: get().generateCheckinCode(), // Ensure code is generated for fallback
             checkinTime: new Date(),
           };
 
