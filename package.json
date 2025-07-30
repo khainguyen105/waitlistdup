@@ -13,6 +13,7 @@
     "worker:tail": "wrangler tail"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
     "clsx": "^2.0.0",
     "date-fns": "^3.0.0",
     "lucide-react": "^0.344.0",
