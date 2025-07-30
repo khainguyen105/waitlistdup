@@ -1,0 +1,45 @@
+# Cloudflare Worker Configuration
+name = "waitlist-management-worker"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Worker settings
+[env.production]
+name = "waitlist-management-worker"
+
+[env.staging]
+name = "waitlist-management-worker-staging"
+
+# Environment variables (set these in Cloudflare dashboard or via wrangler)
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+
+# KV Namespaces (uncomment and configure if using KV storage)
+# [[kv_namespaces]]
+# binding = "QUEUE_DATA"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"
+
+# R2 Buckets (uncomment and configure if using R2 storage)
+# [[r2_buckets]]
+# binding = "STATIC_ASSETS"
+# bucket_name = "waitlist-static-assets"
+
+# Durable Objects (uncomment and configure if using Durable Objects)
+# [[durable_objects.bindings]]
+# name = "QUEUE_MANAGER"
+# class_name = "QueueManager"
+
+# Routes (configure your custom domain routes)
+# routes = [
+#   { pattern = "waitlist.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# Limits and performance
+[limits]
+cpu_ms = 50
+
+# Build configuration
+[build]
+command = ""

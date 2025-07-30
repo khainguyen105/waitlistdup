@@ -1,0 +1,438 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  agency_admin
+  location_manager
+  staff
+  customer
+}
+
+enum QueueStatus {
+  waiting
+  called
+  in_progress
+  completed
+  no_show
+  cancelled
+  transferred
+}
+
+enum CustomerType {
+  vip
+  regular
+  new
+  appointment
+}
+
+enum AssignmentMethod {
+  manual
+  auto
+  preferred
+  load_balanced
+}
+
+enum Priority {
+  low
+  normal
+  high
+  urgent
+  emergency
+}
+
+enum CheckinStatus {
+  en_route
+  present
+  in_queue
+  expired
+  cancelled
+}
+
+enum CheckinType {
+  remote
+  in_store
+}
+
+enum VerificationMethod {
+  geolocation
+  wifi
+  manual
+  staff_confirmed
+}
+
+enum EmployeeStatus {
+  active
+  inactive
+  break
+  busy
+}
+
+enum SkillLevel {
+  beginner
+  intermediate
+  expert
+}
+
+enum AlertType {
+  queue_overflow
+  employee_unavailable
+  system_error
+  emergency
+}
+
+enum AlertSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum RuleType {
+  load_balancing
+  priority_override
+  service_limit
+  emergency_protocol
+}
+
+// Core Models
+model User {
+  id               String    @id @default(cuid())
+  username         String    @unique
+  email            String    @unique
+  role             UserRole
+  firstName        String
+  lastName         String
+  agencyId         String?
+  locationIds      String[]
+  pinRequired      Boolean   @default(true)
+  pinVerified      Boolean   @default(false)
+  lastLoginAt      DateTime?
+  sessionExpiresAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  agency        Agency?        @relation(fields: [agencyId], references: [id])
+  pinCodes      PinCode[]
+  loginAttempts LoginAttempt[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Agency {
+  id         String   @id @default(cuid())
+  name       String
+  domain     String   @unique
+  logo       String?
+  brandColor String   @default("#3B82F6")
+  settings   Json // AgencySettings as JSON
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  locations Location[]
+
+  @@map("agencies")
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  agencyId    String
+  name        String
+  address     String
+  phone       String
+  email       String
+  timezone    String   @default("America/New_York")
+  coordinates Json? // { latitude: number, longitude: number }
+  settings    Json // LocationSettings as JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  agency            Agency             @relation(fields: [agencyId], references: [id])
+  employees         Employee[]
+  services          Service[]
+  serviceCategories ServiceCategory[]
+  queueEntries      QueueEntry[]
+  checkinEntries    CheckinEntry[]
+  queueRules        QueueControlRule[]
+  systemAlerts      SystemAlert[]
+
+  @@map("locations")
+}
+
+model Employee {
+  id            String   @id @default(cuid())
+  locationId    String
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  specialties   String[]
+  serviceIds    String[]
+  skillLevel    Json // Record<string, SkillLevel> as JSON
+  schedule      Json // Schedule as JSON
+  performance   Json // EmployeePerformance as JSON
+  availability  Json // EmployeeAvailability as JSON
+  queueSettings Json // EmployeeQueueSettings as JSON
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  location              Location     @relation(fields: [locationId], references: [id])
+  assignedQueueEntries  QueueEntry[] @relation("AssignedEmployee")
+  preferredQueueEntries QueueEntry[] @relation("PreferredEmployee")
+
+  @@map("employees")
+}
+
+model ServiceCategory {
+  id               String   @id @default(cuid())
+  locationId       String
+  name             String
+  description      String?
+  color            String   @default("#3B82F6")
+  icon             String?
+  sortOrder        Int      @default(0)
+  parentCategoryId String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  location       Location          @relation(fields: [locationId], references: [id])
+  services       Service[]
+  parentCategory ServiceCategory?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subCategories  ServiceCategory[] @relation("CategoryHierarchy")
+
+  @@map("service_categories")
+}
+
+model Service {
+  id                  String     @id @default(cuid())
+  locationId          String
+  categoryId          String?
+  name                String
+  description         String
+  category            String // Keep for backward compatibility
+  estimatedDuration   Int
+  requirements        String[]
+  price               Float?
+  skillLevelRequired  SkillLevel @default(intermediate)
+  assignedEmployeeIds String[]
+  autoAssignmentRules Json // ServiceAutoAssignmentRules as JSON
+  customerTypes       Json[] // CustomerTypeRestriction[] as JSON
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  // Relations
+  location        Location         @relation(fields: [locationId], references: [id])
+  serviceCategory ServiceCategory? @relation(fields: [categoryId], references: [id])
+
+  @@map("services")
+}
+
+model QueueEntry {
+  id                   String           @id @default(cuid())
+  locationId           String
+  customerName         String
+  customerPhone        String
+  customerEmail        String?
+  customerType         CustomerType     @default(regular)
+  services             String[]
+  serviceIds           String[]
+  assignedEmployeeId   String?
+  assignedEmployeeName String?
+  preferredEmployeeId  String?
+  assignmentMethod     AssignmentMethod @default(manual)
+  priority             Priority         @default(normal)
+  status               QueueStatus      @default(waiting)
+  position             Int
+  estimatedWaitTime    Int
+  actualWaitTime       Int?
+  serviceStartTime     DateTime?
+  serviceEndTime       DateTime?
+  joinedAt             DateTime         @default(now())
+  calledAt             DateTime?
+  completedAt          DateTime?
+  notifications        Json[] // QueueNotification[] as JSON
+  specialRequests      String?
+  notes                String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  // Relations
+  location          Location  @relation(fields: [locationId], references: [id])
+  assignedEmployee  Employee? @relation("AssignedEmployee", fields: [assignedEmployeeId], references: [id])
+  preferredEmployee Employee? @relation("PreferredEmployee", fields: [preferredEmployeeId], references: [id])
+
+  @@map("queue_entries")
+}
+
+model CheckinEntry {
+  id                   String              @id @default(cuid())
+  locationId           String
+  customerName         String
+  customerPhone        String
+  customerEmail        String?
+  customerType         CustomerType        @default(regular)
+  services             String[]
+  preferredEmployeeId  String?
+  checkinType          CheckinType
+  status               CheckinStatus       @default(en_route)
+  checkinCode          String              @unique
+  estimatedArrivalTime DateTime?
+  actualArrivalTime    DateTime?
+  checkinTime          DateTime            @default(now())
+  verificationMethod   VerificationMethod?
+  coordinates          Json? // { latitude: number, longitude: number }
+  specialRequests      String?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Relations
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@map("checkin_entries")
+}
+
+model CustomerHistory {
+  id                String   @id @default(cuid())
+  phone             String   @unique
+  name              String
+  email             String?
+  lastVisit         DateTime @default(now())
+  visitCount        Int      @default(1)
+  preferredServices String[]
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("customer_history")
+}
+
+// Authentication & Security Models
+model PinCode {
+  id             String    @id @default(cuid())
+  userId         String
+  locationId     String
+  hashedPin      String
+  salt           String
+  createdAt      DateTime  @default(now())
+  lastUsedAt     DateTime?
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, locationId])
+  @@map("pin_codes")
+}
+
+model LoginAttempt {
+  id            String   @id @default(cuid())
+  userId        String?
+  username      String?
+  ipAddress     String
+  userAgent     String
+  success       Boolean
+  failureReason String?
+  locationId    String?
+  timestamp     DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("login_attempts")
+}
+
+model SecuritySettings {
+  id                          String   @id @default(cuid())
+  maxLoginAttempts            Int      @default(5)
+  lockoutDuration             Int      @default(15) // minutes
+  sessionTimeout              Int      @default(480) // minutes (8 hours)
+  pinLength                   Int      @default(4)
+  requirePinForActions        String[]
+  passwordMinLength           Int      @default(8)
+  passwordRequireSpecialChars Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@map("security_settings")
+}
+
+// Queue Management Models
+model QueueControlRule {
+  id          String   @id @default(cuid())
+  locationId  String
+  name        String
+  description String
+  type        RuleType
+  conditions  Json[] // RuleCondition[] as JSON
+  actions     Json[] // RuleAction[] as JSON
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@map("queue_control_rules")
+}
+
+model SystemAlert {
+  id         String        @id @default(cuid())
+  type       AlertType
+  severity   AlertSeverity
+  message    String
+  locationId String?
+  employeeId String?
+  customerId String?
+  isResolved Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  resolvedAt DateTime?
+  updatedAt  DateTime      @updatedAt
+
+  // Relations
+  location Location? @relation(fields: [locationId], references: [id])
+
+  @@map("system_alerts")
+}
+
+// Session Management (if needed for auth)
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String   @unique
+  expiresAt    DateTime
+  pinVerified  Boolean  @default(false)
+  locationId   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
