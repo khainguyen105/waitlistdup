@@ -63,7 +63,11 @@ export const useQueueStore = create<QueueState>()(
       isLoading: false,
       lastSyncTime: new Date(),
       
-      addToQueue: (entry) => {
+      addToQueue: async (entry) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Calculate position first
         const { entries } = get();
         const locationEntries = entries.filter(e => 
           e.locationId === entry.locationId && 
@@ -71,14 +75,66 @@ export const useQueueStore = create<QueueState>()(
         );
         const waitingEntries = locationEntries.filter(e => e.status === 'waiting');
         const position = waitingEntries.length + 1;
-        
-        const newEntry: QueueEntry = {
-          ...entry,
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          position,
-          joinedAt: new Date(),
-          notifications: [],
-        };
+
+          // Try to save to Supabase first
+          const { data, error } = await supabase
+            .from('queue_entries')
+            .insert({
+              location_id: entry.locationId,
+              customer_name: entry.customerName,
+              customer_phone: entry.customerPhone,
+              customer_email: entry.customerEmail,
+              customer_type: entry.customerType,
+              services: entry.services,
+              service_ids: entry.serviceIds || [],
+              assigned_employee_id: entry.assignedEmployeeId,
+              assigned_employee_name: entry.assignedEmployeeName,
+              preferred_employee_id: entry.preferredEmployeeId,
+              assignment_method: entry.assignmentMethod,
+              priority: entry.priority,
+              status: entry.status,
+              position,
+              estimated_wait_time: entry.estimatedWaitTime,
+              special_requests: entry.specialRequests,
+              notes: entry.notes,
+              notifications: entry.notifications || [],
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Supabase insertion error:', error);
+            throw error;
+          }
+
+          // Convert Supabase response to local format
+          const newEntry: QueueEntry = {
+            id: data.id,
+            locationId: data.location_id,
+            customerName: data.customer_name,
+            customerPhone: data.customer_phone,
+            customerEmail: data.customer_email,
+            customerType: data.customer_type,
+            services: data.services,
+            serviceIds: data.service_ids,
+            assignedEmployeeId: data.assigned_employee_id,
+            assignedEmployeeName: data.assigned_employee_name,
+            preferredEmployeeId: data.preferred_employee_id,
+            assignmentMethod: data.assignment_method,
+            priority: data.priority,
+            status: data.status,
+            position: data.position,
+            estimatedWaitTime: data.estimated_wait_time,
+            actualWaitTime: data.actual_wait_time,
+            serviceStartTime: data.service_start_time ? new Date(data.service_start_time) : undefined,
+            serviceEndTime: data.service_end_time ? new Date(data.service_end_time) : undefined,
+            joinedAt: new Date(data.joined_at),
+            calledAt: data.called_at ? new Date(data.called_at) : undefined,
+            completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
+            notifications: data.notifications || [],
+            specialRequests: data.special_requests,
+            notes: data.notes,
+          };
         
         // Clean up old completed entries before adding new one
         const cleanedEntries = entries.filter(e => {
@@ -106,6 +162,7 @@ export const useQueueStore = create<QueueState>()(
         
         set({ 
           entries: recalculatedEntries,
+          isLoading: false,
           lastSyncTime: new Date()
         });
         
@@ -120,6 +177,30 @@ export const useQueueStore = create<QueueState>()(
         }));
 
         return newEntry;
+        } catch (error) {
+          console.error('Failed to add to queue:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to add to queue',
+            isLoading: false 
+          });
+          
+          // Fallback to local storage only
+          const newEntry: QueueEntry = {
+            id: 'local-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            ...entry,
+            position,
+            joinedAt: new Date(),
+            notifications: [],
+          };
+          
+          set(state => ({
+            entries: [...state.entries, newEntry],
+            isLoading: false,
+            lastSyncTime: new Date()
+          }));
+          
+          return newEntry;
+        }
       },
       
       updateQueueEntry: (id, updates) => {
@@ -268,8 +349,8 @@ export const useQueueStore = create<QueueState>()(
         set({ isLoading: true });
         
         try {
-          // Simulate API call to sync data
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Fetch fresh data from Supabase
+          await get().fetchFromSupabase(get().selectedLocationId || undefined);
           
           // Clean up old entries
           get().cleanupCompletedEntries();
@@ -288,7 +369,10 @@ export const useQueueStore = create<QueueState>()(
           
         } catch (error) {
           console.error('Failed to sync data:', error);
-          set({ isLoading: false });
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to sync data',
+            isLoading: false 
+          });
         }
       },
 

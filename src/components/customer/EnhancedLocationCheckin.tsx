@@ -48,6 +48,17 @@ export function EnhancedLocationCheckin() {
     if (locationId) {
       setQueueLocation(locationId);
       setCheckinLocation(locationId);
+      
+      // Initialize real-time subscriptions
+      const queueStore = useQueueStore.getState();
+      const checkinStore = useCheckinStore.getState();
+      
+      queueStore.initializeRealTime(locationId);
+      checkinStore.initializeRealTime(locationId);
+      
+      // Fetch fresh data from Supabase
+      queueStore.fetchFromSupabase(locationId);
+      checkinStore.fetchFromSupabase(locationId);
     }
   }, [locationId, setQueueLocation, setCheckinLocation]);
 
