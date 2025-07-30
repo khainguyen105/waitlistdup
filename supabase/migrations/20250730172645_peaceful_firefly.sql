@@ -32,7 +32,7 @@
 */
 
 -- Create custom types
-CREATE TYPE user_role AS ENUM ('agency_admin', 'location_manager', 'staff', 'customer');
+--CREATE TYPE user_role AS ENUM ('agency_admin', 'location_manager', 'staff', 'customer');
 CREATE TYPE queue_status AS ENUM ('waiting', 'called', 'in_progress', 'completed', 'no_show', 'cancelled', 'transferred');
 CREATE TYPE customer_type AS ENUM ('vip', 'regular', 'new', 'appointment');
 CREATE TYPE assignment_method AS ENUM ('manual', 'auto', 'preferred', 'load_balanced');
