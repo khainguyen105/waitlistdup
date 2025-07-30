@@ -3,6 +3,7 @@ import { X, User } from 'lucide-react';
 import { useLocationStore } from '../../stores/locationStore';
 import { Employee } from '../../types';
 
+
 interface AddEmployeeFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,7 +19,7 @@ export function AddEmployeeForm({ isOpen, onClose, locationId }: AddEmployeeForm
     specialties: [] as string[],
   });
 
-  const { addEmployee } = useLocationStore();
+  const { addEmployee } = useLocationStore(); // Ensure addEmployee is awaited
 
   const availableSpecialties = [
     'haircut',
@@ -31,7 +32,7 @@ export function AddEmployeeForm({ isOpen, onClose, locationId }: AddEmployeeForm
     'massage',
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const defaultSchedule = {
@@ -43,14 +44,18 @@ export function AddEmployeeForm({ isOpen, onClose, locationId }: AddEmployeeForm
       saturday: { isWorking: false, startTime: '09:00', endTime: '17:00', breakTimes: [] },
       sunday: { isWorking: false, startTime: '09:00', endTime: '17:00', breakTimes: [] },
     };
+    const defaultAvailability = { status: 'active' as const, lastStatusChange: new Date(), currentCustomerId: undefined, estimatedAvailableTime: undefined, notes: undefined };
+    const defaultQueueSettings = { maxQueueSize: 5, acceptNewCustomers: true, turnSharingEnabled: false, turnSharingPartners: [], priorityHandling: 'flexible' as const, breakSchedule: [] };
 
-    addEmployee({
+    await addEmployee({
       locationId,
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
       specialties: formData.specialties,
+      serviceIds: [], // Default empty array for serviceIds
+      skillLevel: {}, // Default empty object for skillLevel
       schedule: defaultSchedule,
       performance: {
         averageServiceTime: 30,
@@ -58,6 +63,8 @@ export function AddEmployeeForm({ isOpen, onClose, locationId }: AddEmployeeForm
         customerRating: 5.0,
         lastUpdated: new Date(),
       },
+      availability: defaultAvailability, // Pass default availability
+      queueSettings: defaultQueueSettings, // Pass default queue settings
       isActive: true,
     });
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Location, Employee, Service, ServiceCategory } from '../types';
 
+import type { Database } from '../lib/supabase';
 interface LocationState {
   locations: Location[];
   employees: Employee[];
@@ -10,7 +11,7 @@ interface LocationState {
   addLocation: (location: Omit<Location, 'id' | 'createdAt'>) => void;
   updateLocation: (id: string, updates: Partial<Location>) => void;
   setSelectedLocation: (location: Location | null) => void;
-  addEmployee: (employee: Omit<Employee, 'id' | 'createdAt'>) => void;
+  addEmployee: (employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
   addService: (service: Omit<Service, 'id' | 'createdAt'>) => void;
   updateService: (id: string, updates: Partial<Service>) => void;
@@ -374,13 +375,55 @@ export const useLocationStore = create<LocationState>((set, get) => ({
     set({ selectedLocation: location });
   },
   
-  addEmployee: (employee) => {
-    const newEmployee: Employee = {
-      ...employee,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    set(state => ({ employees: [...state.employees, newEmployee] }));
+  addEmployee: async (employee) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .insert({
+          location_id: employee.locationId,
+          first_name: employee.firstName,
+          last_name: employee.lastName,
+          email: employee.email,
+          phone: employee.phone,
+          specialties: employee.specialties,
+          service_ids: employee.serviceIds || [],
+          skill_level: employee.skillLevel || {},
+          schedule: employee.schedule,
+          performance: employee.performance,
+          availability: employee.availability || { status: 'inactive', lastStatusChange: new Date() },
+          queue_settings: employee.queueSettings || { maxQueueSize: 5, acceptNewCustomers: true, turnSharingEnabled: false, turnSharingPartners: [], priorityHandling: 'flexible', breakSchedule: [] },
+          is_active: employee.isActive,
+        } as Database['public']['Tables']['employees']['Insert'])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const newEmployee: Employee = {
+        id: data.id,
+        locationId: data.location_id,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        specialties: data.specialties,
+        serviceIds: data.service_ids,
+        skillLevel: data.skill_level,
+        schedule: data.schedule,
+        performance: data.performance,
+        availability: data.availability,
+        queueSettings: data.queue_settings,
+        isActive: data.is_active,
+        createdAt: new Date(data.created_at),
+      };
+
+      set(state => ({ employees: [...state.employees, newEmployee] }));
+    } catch (error) {
+      console.error('Error adding employee to Supabase:', error);
+      // Optionally, set an error state in the store or show a notification
+    }
   },
   
   updateEmployee: (id, updates) => {
