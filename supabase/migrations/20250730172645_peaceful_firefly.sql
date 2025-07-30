@@ -32,8 +32,9 @@
 */
 
 -- Create custom types
---CREATE TYPE user_role AS ENUM ('agency_admin', 'location_manager', 'staff', 'customer');
---CREATE TYPE queue_status AS ENUM ('waiting', 'called', 'in_progress', 'completed', 'no_show', 'cancelled', 'transferred');
+/*
+CREATE TYPE user_role AS ENUM ('agency_admin', 'location_manager', 'staff', 'customer');
+CREATE TYPE queue_status AS ENUM ('waiting', 'called', 'in_progress', 'completed', 'no_show', 'cancelled', 'transferred');
 CREATE TYPE customer_type AS ENUM ('vip', 'regular', 'new', 'appointment');
 CREATE TYPE assignment_method AS ENUM ('manual', 'auto', 'preferred', 'load_balanced');
 CREATE TYPE priority AS ENUM ('low', 'normal', 'high', 'urgent', 'emergency');
@@ -45,7 +46,7 @@ CREATE TYPE skill_level AS ENUM ('beginner', 'intermediate', 'expert');
 CREATE TYPE alert_type AS ENUM ('queue_overflow', 'employee_unavailable', 'system_error', 'emergency');
 CREATE TYPE alert_severity AS ENUM ('low', 'medium', 'high', 'critical');
 CREATE TYPE rule_type AS ENUM ('load_balancing', 'priority_override', 'service_limit', 'emergency_protocol');
-
+*/
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
