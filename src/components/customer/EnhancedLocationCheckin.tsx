@@ -48,17 +48,6 @@ export function EnhancedLocationCheckin() {
     if (locationId) {
       setQueueLocation(locationId);
       setCheckinLocation(locationId);
-      
-      // Initialize real-time subscriptions
-      const queueStore = useQueueStore.getState();
-      const checkinStore = useCheckinStore.getState();
-      
-      queueStore.initializeRealTime(locationId);
-      checkinStore.initializeRealTime(locationId);
-      
-      // Fetch fresh data from Supabase
-      queueStore.fetchFromSupabase(locationId);
-      checkinStore.fetchFromSupabase(locationId);
     }
   }, [locationId, setQueueLocation, setCheckinLocation]);
 
@@ -107,6 +96,43 @@ export function EnhancedLocationCheckin() {
       }
     }
   }, [entries, locationId, formData.customerPhone, step]);
+
+  // Listen for real-time queue updates
+  useEffect(() => {
+    // Listen for Supabase real-time updates
+    const handleSupabaseUpdate = (event: any) => {
+      console.log('Supabase update received:', event.detail);
+      // Data will be automatically updated by the real-time subscription
+    };
+    
+    // Listen for cross-tab updates
+    const handleQueueUpdate = (event: any) => {
+      const { type, entryId, updates } = event.detail;
+      
+      if (customerEntry && entryId === customerEntry.id) {
+        // Update the customer entry with new data
+        const updatedEntry = { ...customerEntry, ...updates };
+        setCustomerEntry(updatedEntry);
+        
+        // Handle status transitions
+        if (updates?.status === 'completed') {
+          setStep('thank-you');
+        } else if (updates?.status === 'called') {
+          setStep('in-queue');
+        } else if (updates?.status === 'in_progress') {
+          setStep('in-queue');
+        }
+      }
+    };
+
+    window.addEventListener('supabaseQueueUpdate', handleSupabaseUpdate);
+    window.addEventListener('queueUpdated', handleQueueUpdate);
+    
+    return () => {
+      window.removeEventListener('supabaseQueueUpdate', handleSupabaseUpdate);
+      window.removeEventListener('queueUpdated', handleQueueUpdate);
+    };
+  }, [customerEntry]);
 
   const handleCustomerSelect = (customer: any) => {
     // Determine customer type based on visit history

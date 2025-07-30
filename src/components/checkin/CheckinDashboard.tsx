@@ -276,16 +276,21 @@ export function CheckinDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Check-in Dashboard</h2>
           <p className="text-gray-600">Manage remote and in-store customer check-ins</p>
+          {(error || checkinError) && (
+            <p className="text-red-600 text-sm mt-1">
+              Error: {error || checkinError}
+            </p>
+          )}
         </div>
         <div className="flex items-center space-x-4">
           <LocationSelector />
           <TouchFriendlyButton
             variant="ghost"
             onClick={() => syncData()}
-            disabled={isLoading}
+            disabled={isLoading || isCheckinLoading}
           >
-            <RefreshCw className={cn('w-5 h-5 mr-2', isLoading && 'animate-spin')} />
-            {isLoading ? 'Syncing...' : 'Sync'}
+            <RefreshCw className={cn('w-5 h-5 mr-2', (isLoading || isCheckinLoading) && 'animate-spin')} />
+            {(isLoading || isCheckinLoading) ? 'Syncing...' : 'Sync'}
           </TouchFriendlyButton>
         </div>
       </div>
